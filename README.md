@@ -8,12 +8,12 @@ This project provides an interactive web interface for generating torsion rings 
 
 ### Features
 
-- 🎨 **Modern Web Interface**: React-based frontend with intuitive UI
-- 📁 **File Upload**: Support for `.dat`, `.pdb`, `.txt`, and `.in` file formats
-- ⚙️ **Configurable Parameters**: Customize number of torsion types (1-7)
-- 🏷️ **Custom Labels**: Add descriptive labels for each torsion ring
-- 📥 **PostScript Export**: Generate publication-quality graphics
-- 🚀 **Real-time Processing**: Fast Fortran backend execution
+- **Modern Web Interface**: React-based frontend with intuitive UI
+- **File Upload**: Support for `.dat`, `.pdb`, `.txt`, and `.in` file formats
+- **Configurable Parameters**: Customize number of torsion types (1-7)
+- **Custom Labels**: Add descriptive labels for each torsion ring
+- **PostScript Export**: Generate publication-quality graphics
+- **Real-time Processing**: Fast Fortran backend execution
 
 ## Project Structure
 
