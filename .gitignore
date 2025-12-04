@@ -1,0 +1,16 @@
+node_modules/
+dist/
+build/
+uploads/
+*.ps
+*.o
+nrings
+nrings_web
+.env
+.env.local
+.DS_Store
+.vscode/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
