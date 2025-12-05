@@ -252,17 +252,33 @@ float dihedral_angle(atom_record a1, atom_record a2, atom_record a3, atom_record
  * Find atom by residue number, chain, and atom name
  * ===================================================================== */
 int find_atom(atom_record *atoms, int n_atoms, int res_num, char chain, const char *atom_name) {
-    int i;
+    int i, j, k;
     char name_trimmed[5];
+    char stored_name[5];
     
-    /* Trim and convert atom name */
-    strcpy(name_trimmed, atom_name);
+    /* Trim the search atom name (remove leading/trailing spaces) */
+    j = 0;
+    for (i = 0; i < 4 && atom_name[i]; i++) {
+        if (atom_name[i] != ' ') {
+            name_trimmed[j++] = atom_name[i];
+        }
+    }
+    name_trimmed[j] = '\0';
     
     for (i = 0; i < n_atoms; i++) {
-        if (atoms[i].res_number == res_num &&
-            atoms[i].chain_id == chain &&
-            strcmp(atoms[i].name, name_trimmed) == 0) {
-            return i;
+        if (atoms[i].res_number == res_num && atoms[i].chain_id == chain) {
+            /* Trim the stored atom name */
+            j = 0;
+            for (k = 0; k < 4; k++) {
+                if (atoms[i].name[k] != ' ' && atoms[i].name[k] != '\0') {
+                    stored_name[j++] = atoms[i].name[k];
+                }
+            }
+            stored_name[j] = '\0';
+            
+            if (strcmp(stored_name, name_trimmed) == 0) {
+                return i;
+            }
         }
     }
     
