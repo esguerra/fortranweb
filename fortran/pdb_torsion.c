@@ -14,6 +14,12 @@
  *   chi:     O4'(n) - C1'(n) - N(9/1)(n) - C(8/2)(n)
  *
  * Reference: IUPAC-IUBMB definitions for nucleic acid structure
+ *
+ * NOTE: 999.0 values indicate angles that cannot be calculated:
+ *  - Alpha at residue 1 (no previous residue available)
+ *  - Delta, Epsilon, Zeta at last residue or at chain breaks (no next residue)
+ * This is correct behavior per the IUPAC definitions which require
+ * atoms from the previous or next residue.
  * =====================================================================
  */
 
