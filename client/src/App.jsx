@@ -95,7 +95,16 @@ function App() {
         setDownloadFilename(response.data.filename)
         setSuccess(true)
       } catch (err) {
-        setError(err.response?.data?.error || 'PDB processing failed. Please try again.')
+        const errorData = err.response?.data
+        let errorMessage = 'PDB processing failed. Please try again.'
+        
+        if (errorData?.message) {
+          errorMessage = errorData.message
+        } else if (errorData?.error) {
+          errorMessage = errorData.error
+        }
+        
+        setError(errorMessage)
         console.error('Error:', err)
       } finally {
         setLoading(false)

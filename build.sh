@@ -12,7 +12,17 @@ cd ..
 
 echo "🔨 Compiling Fortran..."
 cd fortran
-gfortran -o pdb_torsion pdb_torsion.f90 2>/dev/null || echo "⚠️  Fortran compilation skipped (may not be available)"
+if command -v gfortran &> /dev/null; then
+  gfortran -o pdb_torsion pdb_torsion.f90
+  if [ -f pdb_torsion ]; then
+    echo "✅ pdb_torsion compiled successfully"
+  else
+    echo "❌ Fortran compilation failed"
+    exit 1
+  fi
+else
+  echo "⚠️  gfortran not found - PDB processing will not be available"
+fi
 cd ..
 
 echo "✅ Build complete!"
