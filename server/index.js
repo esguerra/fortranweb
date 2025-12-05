@@ -33,7 +33,14 @@ const PORT = process.env.PORT || 3001;
 // Middleware
 app.use(cors());
 app.use(express.json());
-app.use(express.static(path.join(__dirname, '../client/dist')));
+
+// Serve static files from client dist
+const clientDistPath = path.join(__dirname, '../client/dist');
+if (fs.existsSync(clientDistPath)) {
+  app.use(express.static(clientDistPath));
+} else {
+  console.warn(`⚠️  Client dist not found at ${clientDistPath}`);
+}
 
 // Setup multer for file uploads
 const storage = multer.diskStorage({
@@ -278,7 +285,16 @@ async function compileFortran() {
 
 // Catch-all for SPA routing
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../client/dist/index.html'));
+  const indexPath = path.join(__dirname, '../client/dist/index.html');
+  if (fs.existsSync(indexPath)) {
+    res.sendFile(indexPath);
+  } else {
+    res.status(404).json({ 
+      error: 'index.html not found',
+      path: indexPath,
+      lookingFor: req.path
+    });
+  }
 });
 
 app.listen(PORT, () => {

@@ -36,7 +36,7 @@ git push origin main
    - **Environment**: `Node`
    - **Build Command**: 
      ```
-     npm install --legacy-peer-deps && cd client && npm install --legacy-peer-deps --include=dev && npm run build && cd .. && cd fortran && gfortran -o pdb_torsion pdb_torsion.f90 2>/dev/null || true && cd ../..
+     bash build.sh
      ```
    - **Start Command**: 
      ```
