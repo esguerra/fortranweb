@@ -36,7 +36,7 @@ git push origin main
    - **Environment**: `Node`
    - **Build Command**: 
      ```
-     npm install && cd client && npm install && npm run build && cd .. && cd fortran && gfortran-mp-14 -o pdb_torsion pdb_torsion.f90 || gfortran -o pdb_torsion pdb_torsion.f90 || true && cd ../..
+     npm install --legacy-peer-deps && cd client && npm install --legacy-peer-deps && npm run build && cd .. && cd fortran && gfortran -o pdb_torsion pdb_torsion.f90 2>/dev/null || true && cd ../..
      ```
    - **Start Command**: 
      ```
@@ -46,7 +46,6 @@ git push origin main
    **Environment Variables:**
    ```
    NODE_ENV=production
-   PORT=3001
    ```
 
    **Plan**: Free tier (or Starter if free is full)

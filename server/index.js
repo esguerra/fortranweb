@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import multer from 'multer';
-import { exec } from 'child_process';
+import { exec, execSync } from 'child_process';
 import { promisify } from 'util';
 import path from 'path';
 import fs from 'fs';
@@ -25,7 +25,6 @@ const getPythonExecutable = () => {
   }
 };
 
-const { execSync } = require('child_process');
 const PYTHON_EXECUTABLE = getPythonExecutable();
 
 const app = express();
