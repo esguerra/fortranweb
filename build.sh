@@ -10,18 +10,18 @@ npm install --legacy-peer-deps --include=dev
 npm run build
 cd ..
 
-echo "🔨 Compiling Fortran..."
+echo "🔨 Compiling C program..."
 cd fortran
-if command -v gfortran &> /dev/null; then
-  gfortran -o pdb_torsion pdb_torsion.f90
+if command -v gcc &> /dev/null; then
+  gcc -o pdb_torsion pdb_torsion.c -lm
   if [ -f pdb_torsion ]; then
     echo "✅ pdb_torsion compiled successfully"
   else
-    echo "❌ Fortran compilation failed"
+    echo "❌ C compilation failed"
     exit 1
   fi
 else
-  echo "⚠️  gfortran not found - PDB processing will not be available"
+  echo "⚠️  gcc not found - PDB processing will not be available"
 fi
 cd ..
 
