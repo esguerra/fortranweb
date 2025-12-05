@@ -142,22 +142,11 @@ If something breaks after deployment:
 
 ## Known Limitations
 
-### PDB File Processing
+**None! All features are now available on Render.com.**
 
-**Status**: Not available on Render.com
+### PDB File Processing - NOW WORKING ✅
 
-The `pdb_torsion` Fortran binary requires `gfortran` to compile. On Render's Linux environment, gfortran is not pre-installed, so PDB file uploads will return a helpful error message.
-
-**Workaround**: Users can process PDB files locally and convert to `.dat` format:
-
-```bash
-# On local machine
-cd fortran
-./pdb_torsion input.pdb output.dat
-# Then upload output.dat to the web app
-```
-
-For details, see [TROUBLESHOOTING.md](TROUBLESHOOTING.md).
+The `pdb_torsion` tool was converted from Fortran to C, which means it compiles with gcc that is available on Render's Linux environment. Both `.dat` and `.pdb` file uploads now work on production.
 
 ## Support
 

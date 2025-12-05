@@ -170,8 +170,8 @@ app.post('/api/process-pdb', upload.single('file'), async (req, res) => {
     if (!fs.existsSync(pdbTorsionBinary)) {
       return res.status(503).json({
         error: 'PDB processing unavailable',
-        message: 'The Fortran compiler (gfortran) is not available in this environment. Please convert your PDB file to a .dat torsion angles file locally and upload that instead.',
-        workaround: 'Extract torsion angles from your PDB file locally using pdb_torsion, save as .dat, and upload the .dat file.'
+        message: 'The pdb_torsion binary could not be found. Please ensure the build process completed successfully.',
+        workaround: 'As a temporary workaround, extract torsion angles from your PDB file locally using pdb_torsion and upload the resulting .dat file instead.'
       });
     }
 
