@@ -249,6 +249,7 @@ contains
         integer :: res_num, res_num_prev, res_num_next
         integer :: i, j, idx_p, idx_o5, idx_c5, idx_c4, idx_c3, idx_o3
         integer :: idx_c1, idx_o4, idx_n, idx_n_base, idx_c_base
+        integer :: idx_p_next, idx_o5_next, idx_c5_next
         real :: alpha, beta, gamma, delta, epsilon, zeta, chi
         character(len=1) :: chain_id
         logical :: first_res
@@ -279,6 +280,11 @@ contains
                 idx_o3 = find_atom(atoms, n_atoms, res_num, chain_id, "O3'")
                 idx_c1 = find_atom(atoms, n_atoms, res_num, chain_id, "C1'")
                 idx_o4 = find_atom(atoms, n_atoms, res_num, chain_id, "O4'")
+                
+                ! For delta, epsilon, zeta: need atoms from NEXT residue
+                idx_p_next = find_atom(atoms, n_atoms, res_num + 1, chain_id, 'P')
+                idx_o5_next = find_atom(atoms, n_atoms, res_num + 1, chain_id, "O5'")
+                idx_c5_next = find_atom(atoms, n_atoms, res_num + 1, chain_id, "C5'")
                 
                 ! Get chi angle base atom indices
                 idx_n = find_atom(atoms, n_atoms, res_num, chain_id, 'N9')
@@ -311,12 +317,22 @@ contains
                                           atoms(idx_c3), atoms(idx_o3))
                 endif
                 
-                ! Delta: C4'(n) - C3'(n) - O3'(n) - P(n)
-                ! Note: P(n) can also be idx_p if next residue available
-                if (idx_c4 > 0 .and. idx_c3 > 0 .and. idx_o3 > 0 .and. idx_p > 0) then
-                    ! For proper delta, we need P(n+1), but using P(n-1) for reference
-                    ! This would require looking at next residue
-                    ! delta = dihedral_angle(atoms(idx_c4), atoms(idx_c3), ...
+                ! Delta: C4'(n) - C3'(n) - O3'(n) - P(n+1)
+                if (idx_c4 > 0 .and. idx_c3 > 0 .and. idx_o3 > 0 .and. idx_p_next > 0) then
+                    delta = dihedral_angle(atoms(idx_c4), atoms(idx_c3), &
+                                          atoms(idx_o3), atoms(idx_p_next))
+                endif
+                
+                ! Epsilon: C3'(n) - O3'(n) - P(n+1) - O5'(n+1)
+                if (idx_c3 > 0 .and. idx_o3 > 0 .and. idx_p_next > 0 .and. idx_o5_next > 0) then
+                    epsilon = dihedral_angle(atoms(idx_c3), atoms(idx_o3), &
+                                            atoms(idx_p_next), atoms(idx_o5_next))
+                endif
+                
+                ! Zeta: O3'(n) - P(n+1) - O5'(n+1) - C5'(n+1)
+                if (idx_o3 > 0 .and. idx_p_next > 0 .and. idx_o5_next > 0 .and. idx_c5_next > 0) then
+                    zeta = dihedral_angle(atoms(idx_o3), atoms(idx_p_next), &
+                                         atoms(idx_o5_next), atoms(idx_c5_next))
                 endif
                 
                 ! Chi: O4'(n) - C1'(n) - N - C(base)

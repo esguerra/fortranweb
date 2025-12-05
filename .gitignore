@@ -14,3 +14,18 @@ nrings_web
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# Test files
+test_*.png
+test_output.png
+TORSION_RINGS_UPDATE.md
+
+# Compiled Fortran binaries
+fortran/*.o
+fortran/*.mod
+
+# IDE
+.idea/
+*.swp
+*.swo
+*~

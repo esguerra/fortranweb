@@ -4,15 +4,23 @@ A modern web application that executes Fortran code to generate protein conforma
 
 ## Overview
 
-This project provides an interactive web interface for generating torsion rings visualizations. The Fortran backend processes protein structural data and generates PostScript graphics that visualize dihedral angle conformations.
+This project provides an interactive web interface for generating torsion rings visualizations. The Fortran backend processes protein structural data (PDB files) to extract backbone torsion angles and generates SVG graphics that visualize dihedral angle conformations in concentric ring format, based on the classic Srinivasan & Olson (1980) visualization method.
 
 ### Features
 
 - **Modern Web Interface**: React-based frontend with intuitive UI
-- **File Upload**: Support for `.dat`, `.pdb`, `.txt`, and `.in` file formats
-- **Configurable Parameters**: Customize number of torsion types (1-7)
-- **Custom Labels**: Add descriptive labels for each torsion ring
-- **PostScript Export**: Generate publication-quality graphics
+- **PDB File Processing**: Direct reading of PDB files to extract backbone coordinates
+- **Backbone Torsion Angles**: Automatic calculation of all 7 backbone angles:
+  - α (alpha): P(n-1) - O5'(n) - C5'(n) - C4'(n)
+  - β (beta): O5'(n) - C5'(n) - C4'(n) - C3'(n)
+  - γ (gamma): C5'(n) - C4'(n) - C3'(n) - O3'(n)
+  - δ (delta): C4'(n) - C3'(n) - O3'(n) - P(n+1)
+  - ε (epsilon): C3'(n) - O3'(n) - P(n+1) - O5'(n+1)
+  - ζ (zeta): O3'(n) - P(n+1) - O5'(n+1) - C5'(n+1)
+  - χ (chi): O4'(n) - C1'(n) - N - C(base)
+- **SVG Visualization**: 7 concentric rings (one per torsion type) with residue segments
+- **Color-Coded Rings**: Each torsion angle has a distinct color for easy identification
+- **File Upload**: Support for `.dat` (pre-calculated angles), `.pdb` (protein structure) files
 - **Real-time Processing**: Fast Fortran backend execution
 
 ## Project Structure
@@ -31,8 +39,10 @@ fortranweb/
 │   ├── vite.config.js   # Vite configuration
 │   └── package.json     # Client dependencies
 ├── fortran/             # Fortran source code
-│   ├── nrings.f         # Original torsion rings generator
-│   └── nrings_web.f90   # Web-optimized version
+│   ├── pdb_torsion.f90      # PDB parser and torsion angle calculator
+│   ├── nrings_svg.f90       # SVG concentric rings generator
+│   ├── nrings.f             # Original PostScript generator (reference)
+│   └── test data files
 ├── uploads/             # Temporary upload directory
 ├── package.json         # Project dependencies
 └── README.md            # This file
@@ -116,105 +126,136 @@ The application will be available at `http://localhost:3001`
 
 ### POST /api/process
 
-Process a data file and generate torsion rings visualization.
+Process a pre-calculated torsion angles data file and generate SVG visualization.
 
 **Request:**
 - Form data with multipart/form-data encoding
-- `file`: Data file (.dat, .pdb, .txt, or .in)
-- `torsionCount`: Number of torsion types (1-7)
-- `labels`: JSON array of labels for each ring
-- `title`: Title for the diagram
+- `file`: Data file (.dat format with angle values)
 
 **Response:**
 ```json
 {
   "success": true,
-  "psContent": "PostScript content...",
-  "filename": "rings_1234567890.ps"
+  "svgContent": "<svg>...</svg>",
+  "torsionData": {...}
 }
 ```
 
-### GET /api/health
+### POST /api/process-pdb
 
-Health check endpoint.
+Process a PDB file to extract coordinates, calculate backbone torsion angles, and generate SVG visualization.
+
+**Request:**
+- Form data with multipart/form-data encoding
+- `file`: PDB structure file
 
 **Response:**
 ```json
 {
-  "status": "ok",
-  "message": "Server is running"
+  "success": true,
+  "svgContent": "<svg>...</svg>",
+  "torsionContent": "Residue  Alpha  Beta  Gamma  Delta  Epsilon  Zeta  Chi...",
+  "residueCount": 62
 }
 ```
 
 ## Input Data Format
 
-The input data file should contain torsion angle values in a tabular format:
+### Option 1: Pre-calculated Torsion Angles (.dat)
+
+Tab-separated or space-separated format with residue number and angle values:
 
 ```
-   1     0.0    45.0    90.0   135.0   180.0  -135.0   -90.0
-   2     5.0    50.0    95.0   140.0  -175.0  -130.0   -85.0
-   3   999.0    55.0   100.0   145.0  -170.0  -125.0   999.0
+Residue  Alpha    Beta    Gamma   Delta  Epsilon   Zeta      Chi
+------- -------- ------- ------- ------- -------- ------- -------
+      1     0.0    45.0    90.0   135.0   180.0  -135.0   -90.0
+      2     5.0    50.0    95.0   140.0  -175.0  -130.0   -85.0
+      3   999.0    55.0   100.0   145.0  -170.0  -125.0   999.0
 ```
 
-- Each row represents a structure/frame
-- Each column (after the first) represents a torsion type
-- Use `999.0` for missing or undefined torsion values
-- Values should be in degrees (-180 to 180 or 0 to 360)
+Use `999.0` for missing or undefined torsion values.
+
+### Option 2: Protein Structure File (.pdb)
+
+Standard Protein Data Bank format. The application will:
+1. Parse all ATOM records
+2. Extract backbone atom coordinates
+3. Calculate all 7 backbone torsion angles automatically
+4. Generate visualization directly
 
 ## Usage Guide
 
-1. **Upload a Data File**: Click the upload area and select your data file
-2. **Set Torsion Count**: Choose how many different torsion types to visualize (1-7)
-3. **Add Labels**: Enter descriptive labels for each torsion ring (e.g., α, β, γ)
-4. **Set Title**: Give your diagram a descriptive title
-5. **Generate**: Click "Generate Rings" to process the data
-6. **Download**: Download the PostScript file for viewing/printing
-
-## Viewing PostScript Output
-
-The generated PostScript files can be viewed with:
-
-- **macOS**: Preview, Ghostview
-- **Linux**: Ghostview, Evince, PDF viewer (after conversion)
-- **Windows**: GSview, Ghostscript
-
-### Convert PostScript to PDF
-
-```bash
-ps2pdf rings.ps rings.pdf
-```
+1. **Upload a Data File**: Click the upload area to select either a `.dat` file or `.pdb` file
+2. **For .dat files**: Torsion angles are extracted and visualized directly
+3. **For .pdb files**: Backbone coordinates are parsed, torsion angles calculated, then visualized
+4. **View Result**: SVG visualization shows 7 concentric rings (one per torsion angle) with color-coded segments
+5. **Download**: The visualization is displayed in-browser and can be saved as SVG
 
 ## Fortran Code Details
 
-The project includes two Fortran implementations:
+The project includes specialized Fortran programs for processing protein structures:
+
+### pdb_torsion.f90
+
+Parses PDB files and calculates backbone torsion angles.
+
+**Features:**
+- Reads standard PDB ATOM records with fixed-format columns
+- Extracts backbone atom coordinates (P, O5', C5', C4', C3', O3', C1', O4', N, base carbons)
+- Calculates all 7 backbone torsion angles with proper dihedral geometry
+- Handles missing atoms gracefully (outputs 999.0 for undefined angles)
+- Outputs tab-separated angle values for each residue
+
+**Usage:**
+```bash
+./pdb_torsion input.pdb output.dat
+```
+
+### nrings_svg.f90
+
+Generates SVG visualization of torsion angles in concentric ring format.
+
+**Features:**
+- Reads tab-separated torsion angle data
+- Creates 7 concentric rings (one per angle type)
+- Each ring divided into segments for residues
+- Color-coded by angle type (red=α, green=β, blue=γ, etc.)
+- Generates standard SVG format for browser display
+- Reference circles and center point for angle reference
+
+**Usage:**
+```bash
+./nrings_svg input.dat output.svg "Title"
+```
 
 ### nrings.f
-Original interactive version with command-line prompts. Used as reference and can be compiled standalone.
 
-### nrings_web.f90
-Modern Fortran 90 version optimized for programmatic input/output. Used by the web application.
+Original PostScript generator (provided for reference). Can be compiled standalone with:
 
-**Key differences:**
-- Reads all input from stdin
-- Writes output to `rings.ps` directly
-- Improved error handling
-- Better code structure with subroutines
+```bash
+gfortran -o nrings nrings.f
+```
 
 ## Troubleshooting
 
 ### "gfortran: command not found"
+
 Install gfortran using your package manager (see Prerequisites section)
 
 ### "Fortran compilation failed"
-Ensure the Fortran source file exists at `fortran/nrings_web.f90`
+
+Ensure the Fortran source files exist in `fortran/pdb_torsion.f90` and `fortran/nrings_svg.f90`
 
 ### "Port 3001 already in use"
+
 Change the port by setting the PORT environment variable:
+
 ```bash
 PORT=3002 npm start
 ```
 
 ### "File upload fails"
+
 Ensure the `uploads/` directory exists and is writable. The server creates it automatically on first upload.
 
 ## Development
@@ -227,11 +268,20 @@ Ensure the `uploads/` directory exists and is writable. The server creates it au
 - **Build Tools**: npm, Vite
 - **Package Manager**: npm
 
+### Key Algorithm: Dihedral Angle Calculation
+
+The torsion angles are computed using the dihedral angle formula. For atoms A-B-C-D:
+
+$$\phi = \text{atan2}((\vec{BA} \times \vec{BC}) \cdot \vec{CD}, (\vec{BC} \times \vec{CD}) \cdot \vec{BA})$$
+
+Where cross products and dot products are used to determine the angle and proper quadrant.
+
 ### Adding New Features
 
 1. Backend changes: Modify `server/index.js`
 2. Frontend changes: Update `client/src/App.jsx` and styles
-3. Fortran changes: Edit `fortran/nrings_web.f90` and recompile
+3. Fortran PDB parser: Edit `fortran/pdb_torsion.f90` and recompile
+4. Fortran SVG generator: Edit `fortran/nrings_svg.f90` and recompile
 
 ## References
 

@@ -11,6 +11,23 @@ const execAsync = promisify(exec);
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Determine Python executable based on environment
+const getPythonExecutable = () => {
+  if (process.env.NODE_ENV === 'production') {
+    return 'python3'; // Use system python3 in production
+  }
+  // Local development - try conda environment first, fall back to system
+  try {
+    execSync('which /Users/esguerra/miniforge3/envs/pubchempy/bin/python3', { stdio: 'ignore' });
+    return '/Users/esguerra/miniforge3/envs/pubchempy/bin/python3';
+  } catch {
+    return 'python3';
+  }
+};
+
+const { execSync } = require('child_process');
+const PYTHON_EXECUTABLE = getPythonExecutable();
+
 const app = express();
 const PORT = process.env.PORT || 3001;
 
@@ -57,50 +74,64 @@ app.post('/api/process', upload.single('file'), async (req, res) => {
       return res.status(400).json({ error: 'No file uploaded' });
     }
 
-    const { torsionCount, labels, title } = req.body;
+    const { title } = req.body;
     const inputFile = req.file.path;
     const uploadDir = path.dirname(inputFile);
-    const outputFile = path.join(uploadDir, 'rings.svg');
-
-    // Validate parameters
-    if (!torsionCount || isNaN(parseInt(torsionCount))) {
-      return res.status(400).json({ error: 'Invalid torsion count' });
-    }
+    const outputFilePng = path.join(uploadDir, 'rings.png');
+    const outputFilePdf = path.join(uploadDir, 'rings.pdf');
 
     const titleStr = title || 'Torsion Rings';
 
-    // Check if nrings_svg binary exists
-    const nringsSvgBinary = path.join(__dirname, '../fortran/nrings_svg');
-    if (!fs.existsSync(nringsSvgBinary)) {
+    // Check if Python script exists
+    const torsionRingsScript = path.join(__dirname, '../fortran/torsion_rings.py');
+    if (!fs.existsSync(torsionRingsScript)) {
       return res.status(500).json({
-        error: 'nrings_svg binary not found. Please compile it first.'
+        error: 'torsion_rings.py script not found.'
       });
     }
 
-    // Execute nrings_svg program to generate SVG
-    const { stdout, stderr } = await execAsync(
-      `${nringsSvgBinary} ${inputFile} ${outputFile} "${titleStr}"`,
+    // Execute Python script to generate PNG
+    const { stdout: stdoutPng, stderr: stderrPng } = await execAsync(
+      `${PYTHON_EXECUTABLE} ${torsionRingsScript} ${inputFile} -o ${outputFilePng} -t "${titleStr}" -f png`,
       { cwd: uploadDir, timeout: 30000 }
     );
 
-    // Check if output was created
-    if (!fs.existsSync(outputFile)) {
+    // Check if PNG output was created
+    if (!fs.existsSync(outputFilePng)) {
       return res.status(500).json({
-        error: 'Failed to generate SVG visualization',
-        stderr: stderr || stdout
+        error: 'Failed to generate PNG visualization',
+        stderr: stderrPng || stdoutPng
       });
     }
 
-    // Read the SVG file
-    const svgContent = fs.readFileSync(outputFile, 'utf-8');
+    // Execute Python script to generate PDF
+    const { stdout: stdoutPdf, stderr: stderrPdf } = await execAsync(
+      `${PYTHON_EXECUTABLE} ${torsionRingsScript} ${inputFile} -o ${outputFilePdf} -t "${titleStr}" -f pdf`,
+      { cwd: uploadDir, timeout: 30000 }
+    );
+
+    // Check if PDF output was created
+    if (!fs.existsSync(outputFilePdf)) {
+      return res.status(500).json({
+        error: 'Failed to generate PDF visualization',
+        stderr: stderrPdf || stdoutPdf
+      });
+    }
+
+    // Read the PNG and PDF files as base64
+    const pngContent = fs.readFileSync(outputFilePng, 'base64');
+    const pdfContent = fs.readFileSync(outputFilePdf, 'base64');
 
     // Clean up temporary files
     fs.unlinkSync(inputFile);
+    fs.unlinkSync(outputFilePng);
+    fs.unlinkSync(outputFilePdf);
 
     res.json({
       success: true,
-      svgContent: svgContent,
-      filename: `rings_${Date.now()}.svg`
+      pngContent: pngContent,
+      pdfContent: pdfContent,
+      filename: `rings_${Date.now()}.png`
     });
 
   } catch (error) {
@@ -151,30 +182,43 @@ app.post('/api/process-pdb', upload.single('file'), async (req, res) => {
     // Read the torsion angles file
     const torsionContent = fs.readFileSync(torsionFile, 'utf-8');
 
-    // If visualization is requested, generate SVG with nrings_svg
-    let svgContent = null;
+    // If visualization is requested, generate PNG and PDF with torsion_rings.py
+    let pngContent = null;
+    let pdfContent = null;
     if (generateVisualization === 'true' || generateVisualization === true) {
       try {
-        const nringsSvgBinary = path.join(__dirname, '../fortran/nrings_svg');
-        if (!fs.existsSync(nringsSvgBinary)) {
-          throw new Error('nrings_svg binary not found. Please compile it first.');
+        const torsionRingsScript = path.join(__dirname, '../fortran/torsion_rings.py');
+        if (!fs.existsSync(torsionRingsScript)) {
+          throw new Error('torsion_rings.py script not found.');
         }
 
-        const svgFile = path.join(uploadDir, 'rings_pdb.svg');
+        const pngFile = path.join(uploadDir, 'rings_pdb.png');
+        const pdfFile = path.join(uploadDir, 'rings_pdb.pdf');
         const titleStr = title || 'PDB Torsion Rings';
 
-        // Execute nrings_svg to generate SVG
-        const { stdout: nringStdout, stderr: nringStderr } = await execAsync(
-          `${nringsSvgBinary} ${torsionFile} ${svgFile} "${titleStr}"`,
+        // Execute Python script to generate PNG
+        const { stdout: pngStdout, stderr: pngStderr } = await execAsync(
+          `${PYTHON_EXECUTABLE} ${torsionRingsScript} ${torsionFile} -o ${pngFile} -t "${titleStr}" -f png`,
           { cwd: uploadDir, timeout: 30000 }
         );
 
-        // Check if SVG was created
-        if (fs.existsSync(svgFile)) {
-          svgContent = fs.readFileSync(svgFile, 'utf-8');
+        // Check if PNG was created
+        if (fs.existsSync(pngFile)) {
+          pngContent = fs.readFileSync(pngFile, 'base64');
+        }
+
+        // Execute Python script to generate PDF
+        const { stdout: pdfStdout, stderr: pdfStderr } = await execAsync(
+          `${PYTHON_EXECUTABLE} ${torsionRingsScript} ${torsionFile} -o ${pdfFile} -t "${titleStr}" -f pdf`,
+          { cwd: uploadDir, timeout: 30000 }
+        );
+
+        // Check if PDF was created
+        if (fs.existsSync(pdfFile)) {
+          pdfContent = fs.readFileSync(pdfFile, 'base64');
         }
       } catch (vizError) {
-        console.warn('SVG visualization generation failed:', vizError.message);
+        console.warn('Visualization generation failed:', vizError.message);
         // Continue without visualization
       }
     }
@@ -188,8 +232,9 @@ app.post('/api/process-pdb', upload.single('file'), async (req, res) => {
     res.json({
       success: true,
       torsionAngles: torsionContent,
-      svgContent: svgContent,
-      filename: `pdb_rings_${Date.now()}.svg`,
+      pngContent: pngContent,
+      pdfContent: pdfContent,
+      filename: `pdb_rings_${Date.now()}.png`,
       message: 'PDB processed successfully'
     });
 

@@ -6,15 +6,13 @@ function App() {
   const [file, setFile] = useState(null)
   const [fileName, setFileName] = useState('')
   const [fileType, setFileType] = useState('dat') // 'dat' or 'pdb'
-  const [torsionCount, setTorsionCount] = useState(1)
-  const [labels, setLabels] = useState([])
-  const [currentLabel, setCurrentLabel] = useState('')
   const [title, setTitle] = useState('Torsion Rings')
   const [generateVisualization, setGenerateVisualization] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
-  const [svgContent, setSvgContent] = useState('')
+  const [pngContent, setPngContent] = useState('')
+  const [pdfContent, setPdfContent] = useState('')
   const [torsionContent, setTorsionContent] = useState('')
   const [downloadFilename, setDownloadFilename] = useState('')
 
@@ -56,33 +54,11 @@ function App() {
     }
   }
 
-  const handleAddLabel = () => {
-    if (currentLabel.trim() && labels.length < torsionCount) {
-      setLabels([...labels, currentLabel.trim()])
-      setCurrentLabel('')
-      setError('')
-    } else if (labels.length >= torsionCount) {
-      setError(`Maximum ${torsionCount} labels allowed`)
-    }
-  }
-
-  const handleRemoveLabel = (index) => {
-    setLabels(labels.filter((_, i) => i !== index))
-  }
-
-  const handleTorsionCountChange = (e) => {
-    const count = Math.min(7, Math.max(1, parseInt(e.target.value) || 1))
-    setTorsionCount(count)
-    if (labels.length > count) {
-      setLabels(labels.slice(0, count))
-    }
-  }
-
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
     setSuccess(false)
-    setSvgContent('')
+    setPngContent('')
     setTorsionContent('')
 
     if (!file) {
@@ -110,10 +86,13 @@ function App() {
         })
 
         setTorsionContent(response.data.torsionAngles)
-        if (response.data.svgContent) {
-          setSvgContent(response.data.svgContent)
-          setDownloadFilename(response.data.filename)
+        if (response.data.pngContent) {
+          setPngContent(response.data.pngContent)
         }
+        if (response.data.pdfContent) {
+          setPdfContent(response.data.pdfContent)
+        }
+        setDownloadFilename(response.data.filename)
         setSuccess(true)
       } catch (err) {
         setError(err.response?.data?.error || 'PDB processing failed. Please try again.')
@@ -122,23 +101,11 @@ function App() {
         setLoading(false)
       }
     } else {
-      // Original .dat file processing
-      if (labels.length !== torsionCount) {
-        setError(`Please provide ${torsionCount} labels`)
-        return
-      }
-
-      if (!title.trim()) {
-        setError('Please enter a title')
-        return
-      }
-
+      // .dat file processing
       setLoading(true)
       try {
         const formData = new FormData()
         formData.append('file', file)
-        formData.append('torsionCount', torsionCount)
-        formData.append('labels', JSON.stringify(labels))
         formData.append('title', title)
 
         const response = await axios.post('/api/process', formData, {
@@ -147,7 +114,12 @@ function App() {
           }
         })
 
-        setSvgContent(response.data.svgContent)
+        if (response.data.pngContent) {
+          setPngContent(response.data.pngContent)
+        }
+        if (response.data.pdfContent) {
+          setPdfContent(response.data.pdfContent)
+        }
         setDownloadFilename(response.data.filename)
         setSuccess(true)
       } catch (err) {
@@ -160,11 +132,33 @@ function App() {
   }
 
   const handleDownload = () => {
-    if (svgContent) {
+    if (pngContent) {
       const element = document.createElement('a')
-      const file = new Blob([svgContent], { type: 'image/svg+xml' })
+      const binaryString = atob(pngContent)
+      const bytes = new Uint8Array(binaryString.length)
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i)
+      }
+      const file = new Blob([bytes], { type: 'image/png' })
       element.href = URL.createObjectURL(file)
-      element.download = downloadFilename
+      element.download = downloadFilename.replace('.pdf', '.png') || 'rings.png'
+      document.body.appendChild(element)
+      element.click()
+      document.body.removeChild(element)
+    }
+  }
+
+  const handleDownloadPDF = () => {
+    if (pdfContent) {
+      const element = document.createElement('a')
+      const binaryString = atob(pdfContent)
+      const bytes = new Uint8Array(binaryString.length)
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i)
+      }
+      const file = new Blob([bytes], { type: 'application/pdf' })
+      element.href = URL.createObjectURL(file)
+      element.download = downloadFilename.replace('.png', '.pdf') || 'rings.pdf'
       document.body.appendChild(element)
       element.click()
       document.body.removeChild(element)
@@ -175,21 +169,19 @@ function App() {
     setFile(null)
     setFileName('')
     setFileType('dat')
-    setTorsionCount(1)
-    setLabels([])
-    setCurrentLabel('')
     setTitle('Torsion Rings')
     setGenerateVisualization(false)
     setError('')
     setSuccess(false)
-    setSvgContent('')
+    setPngContent('')
+    setPdfContent('')
     setTorsionContent('')
   }
 
   return (
     <div className="container">
-      <h1>🔗 Torsion Rings Generator</h1>
-      <p className="subtitle">Generate conformation rings from protein data</p>
+      <h1>Srinivasan-Olson Conformation Wheels</h1>
+      <p className="subtitle">Chi Glycosyl and Backbone Rotations</p>
 
       {error && <div className="error">{error}</div>}
       {success && <div className="success">✓ Processing completed successfully!</div>}
@@ -226,18 +218,6 @@ function App() {
           <h2>2. Configuration</h2>
 
           <div className="form-group">
-            <label htmlFor="torsionCount">Number of Torsion Types (1-7)</label>
-            <input
-              id="torsionCount"
-              type="number"
-              min="1"
-              max="7"
-              value={torsionCount}
-              onChange={handleTorsionCountChange}
-            />
-          </div>
-
-          <div className="form-group">
             <label htmlFor="title">Title for the Diagram</label>
             <input
               id="title"
@@ -260,41 +240,7 @@ function App() {
                 Generate Torsion Ring Visualization
               </label>
               <div className="form-hint">
-                When checked, a PostScript visualization will be generated from the extracted torsion angles
-              </div>
-            </div>
-          )}
-
-          {fileType === 'dat' && (
-            <div className="form-group">
-              <label>Labels for Each Ring</label>
-              <div className="labels-input">
-                <input
-                  type="text"
-                  value={currentLabel}
-                  onChange={(e) => setCurrentLabel(e.target.value)}
-                  placeholder="Enter label (e.g., α, β, γ)"
-                  maxLength="3"
-                  onKeyPress={(e) => e.key === 'Enter' && handleAddLabel()}
-                />
-                <button type="button" onClick={handleAddLabel}>
-                  Add
-                </button>
-              </div>
-              {labels.length > 0 && (
-                <div className="labels-list">
-                  {labels.map((label, index) => (
-                    <div key={index} className="label-badge">
-                      {label}
-                      <button type="button" onClick={() => handleRemoveLabel(index)}>
-                        ×
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-              <div className="info-box">
-                Labels added: <strong>{labels.length}/{torsionCount}</strong>
+                When checked, a torsion ring visualization will be generated from the extracted torsion angles
               </div>
             </div>
           )}
@@ -315,9 +261,14 @@ function App() {
               '⚡ Generate Rings'
             )}
           </button>
-          {svgContent && (
+          {pngContent && (
             <button type="button" className="btn btn-primary" onClick={handleDownload}>
-              📥 Download SVG
+              📥 Download PNG
+            </button>
+          )}
+          {pdfContent && (
+            <button type="button" className="btn btn-primary" onClick={handleDownloadPDF}>
+              📄 Download PDF
             </button>
           )}
           <button type="button" className="btn btn-secondary" onClick={handleReset}>
@@ -334,17 +285,12 @@ function App() {
         </div>
       )}
       
-      {svgContent && (
+      {pngContent && (
         <div className="results">
           <h3>✓ Visualization Generated</h3>
           <p>Your torsion rings diagram has been generated successfully!</p>
-          <div className="svg-viewer" dangerouslySetInnerHTML={{ __html: svgContent }} />
-          <button className="download-btn" onClick={handleDownload}>
-            📥 Download SVG File
-          </button>
-          <div className="info-box">
-            <strong>💡 Tip:</strong> You can view the SVG directly in your browser, download it, or convert to PDF. 
-            Click and drag to interact with the visualization in compatible viewers.
+          <div className="png-viewer">
+            <img src={`data:image/png;base64,${pngContent}`} alt="Torsion Rings" />
           </div>
         </div>
       )}
@@ -353,12 +299,12 @@ function App() {
       <div className="info-box" style={{ marginTop: '30px' }}>
         <strong>📖 How to use:</strong>
         <ol style={{ marginLeft: '20px', marginTop: '10px' }}>
-          <li>Prepare a data file with torsion angle values (one record per line, 7 columns)</li>
-          <li>Upload the data file using the upload button</li>
-          <li>Specify the number of torsion types to visualize</li>
-          <li>Add descriptive labels for each ring</li>
+          <li><strong>.DAT files:</strong> Upload a data file with torsion angle values (one residue per line, 7 torsion angles per residue)</li>
+          <li><strong>.PDB files:</strong> Upload a PDB protein structure file and it will automatically extract all backbone torsion angles</li>
+          <li>Customize the title for your diagram (optional)</li>
           <li>Click "Generate Rings" to create the visualization</li>
-          <li>Download the PostScript file for viewing or printing</li>
+          <li>View the concentric rings diagram with 7 torsion angles displayed from center (Chi) to outer ring (Alpha)</li>
+          <li>Download as PNG or PDF for presentations and publications</li>
         </ol>
       </div>
     </div>
