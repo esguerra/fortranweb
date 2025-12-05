@@ -36,7 +36,7 @@ git push origin main
    - **Environment**: `Node`
    - **Build Command**: 
      ```
-     npm install --legacy-peer-deps && cd client && npm install --legacy-peer-deps && npm run build && cd .. && cd fortran && gfortran -o pdb_torsion pdb_torsion.f90 2>/dev/null || true && cd ../..
+     npm install --legacy-peer-deps && cd client && npm install --legacy-peer-deps --include=dev && npm run build && cd .. && cd fortran && gfortran -o pdb_torsion pdb_torsion.f90 2>/dev/null || true && cd ../..
      ```
    - **Start Command**: 
      ```
@@ -59,7 +59,7 @@ git push origin main
    - Compile Fortran code
    - Install dependencies
    - Start the server
-3. You'll get a URL like `https://torsion-rings.onrender.com`
+3. You'll get a URL like `https://conformation-wheels.onrender.com/`
 
 ### 5. Automatic Deployments
 
