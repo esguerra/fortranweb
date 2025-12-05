@@ -1,10 +1,10 @@
-# Torsion Rings Generator - Web Interface
+# Conformation Wheels - Web Interface
 
-A modern web application that executes Fortran code to generate protein conformation ring diagrams from PDB (Protein Data Bank) data files.
+A modern web application that generates protein conformation visualizations from PDB (Protein Data Bank) files and torsion angle data.
 
 ## Overview
 
-This project provides an interactive web interface for generating torsion rings visualizations. The Fortran backend processes protein structural data (PDB files) to extract backbone torsion angles and generates SVG graphics that visualize dihedral angle conformations in concentric ring format, based on the classic Srinivasan & Olson (1980) visualization method.
+This project provides an interactive web interface for generating conformation wheels visualizations. The backend processes protein structural data (PDB files) to extract backbone torsion angles and generates PNG/PDF graphics that visualize dihedral angle conformations in concentric ring format, based on the classic Srinivasan & Olson (1980) visualization method.
 
 ### Features
 

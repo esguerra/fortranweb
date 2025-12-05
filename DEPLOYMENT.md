@@ -32,7 +32,7 @@ git push origin main
 3. Configure the service:
 
    **Basic Settings:**
-   - **Name**: `torsion-rings` (or your preferred name)
+   - **Name**: `conformation-wheels` (or your preferred name)
    - **Environment**: `Node`
    - **Build Command**: 
      ```

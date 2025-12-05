@@ -1,7 +1,7 @@
 {
-  "name": "fortran-web-rings",
+  "name": "conformation-wheels",
   "version": "1.0.0",
-  "description": "Web interface for Fortran torsion rings generator",
+  "description": "Web interface for protein conformation wheels visualization from PDB and torsion angle data",
   "type": "module",
   "main": "server/index.js",
   "scripts": {
